@@ -45,13 +45,13 @@ class TestGetModels(unittest.TestCase):
 
 class TestClassification(unittest.TestCase):
     def test_upload_image(self):
+        headers = {'model-id': "1",
+                   }
+
         with open(FILENAME_IMAGE, 'rb') as f:
             files = {'file': f}
-            # headers = {'source': 'nl',
-            #            'target': 'fr'}
 
-            headers = {'model-id': "1",
-                       }
+
 
             response = TEST_CLIENT.post("/classify",
                                         headers=headers,
@@ -66,3 +66,58 @@ class TestClassification(unittest.TestCase):
                 self.assertIn(key, json, 'Could not retrieve key.')
 
         return
+
+
+class TestMultipleFilesClassification(unittest.TestCase):
+    def test_single_file_upload(self):
+
+        headers = {'model-id': "1",
+                   }
+
+        with open(FILENAME_IMAGE, 'rb') as f:
+            files = {'files': f}
+
+            response = TEST_CLIENT.post("/classify/multiple",
+                                        headers=headers,
+                                        files=files)
+
+        self.assertLess(response.status_code, 300, "Status code should indicate a proper connection.")
+
+        json = response.json()
+
+        self.assertEqual(len(json), 1)
+
+        json0 = json[0]
+
+        for key in ['idx', 'certainty', 'label']:
+            with self.subTest('Key %s' % key):
+                self.assertIn(key, json0, 'Could not retrieve key.')
+
+    def test_multiple_same_file_upload(self):
+        headers = {'model-id': "1",
+                   }
+
+        n = 2
+
+        with open(FILENAME_IMAGE, 'rb') as f1, open(FILENAME_IMAGE, 'rb') as f2:
+            files = [('files', f1),
+                     ('files', f2),
+                     ]
+
+            response = TEST_CLIENT.post("/classify/multiple",
+                                        headers=headers,
+                                        files=files)
+
+        self.assertLess(response.status_code, 300, "Status code should indicate a proper connection.")
+
+        json = response.json()
+
+        self.assertEqual(len(json), n)
+
+        for json_i in json:
+
+            with self.subTest('File %s' % json_i):
+
+                for key in ['idx', 'certainty', 'label']:
+
+                    self.assertIn(key, json_i, 'Could not retrieve key.')

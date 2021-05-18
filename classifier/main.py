@@ -3,6 +3,7 @@ from fastapi import UploadFile, File, FastAPI, Header
 
 from app.schemas import Model, ModelsInfo, Prediction
 from methods import get_pred_nbb_bris
+from typing import List
 
 app = FastAPI()
 
@@ -56,3 +57,23 @@ async def post_classify(model_id: int = Header(...),
     )
 
     return p
+
+
+@app.post("/classify/multiple",
+          response_model=List[Prediction]
+          )
+async def post_classify_multiple(model_id: int = Header(...),
+                        files: List[UploadFile] = File(...),
+                        ):
+    """
+    :return:
+    """
+
+    l = []
+    for file in files:
+        prediction = await post_classify(model_id=model_id,
+                      file=file)
+
+        l.append(prediction)
+
+    return l
