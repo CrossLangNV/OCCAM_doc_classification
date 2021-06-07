@@ -1,6 +1,9 @@
 import os
+import tempfile
 import unittest
 
+import numpy as np
+from PIL import Image
 from fastapi.testclient import TestClient
 
 from classifier.main import app
@@ -44,28 +47,157 @@ class TestGetModels(unittest.TestCase):
 
 
 class TestClassification(unittest.TestCase):
+
+    def post_classify(self, file,
+                      headers=None
+                      ):
+        if headers is None:
+            headers = {'model-id': "1"}
+        files = {'file': file}
+
+        response = TEST_CLIENT.post("/classify",
+                                    headers=headers,
+                                    files=files)
+
+        with self.subTest('Response'):
+            self.assertTrue(response.ok, f"Status code should indicate a proper connection.\n{response}")
+
+        return response.json()
+
     def test_upload_image(self):
-        headers = {'model-id': "1",
-                   }
 
         with open(FILENAME_IMAGE, 'rb') as f:
-            files = {'file': f}
-
-
-
-            response = TEST_CLIENT.post("/classify",
-                                        headers=headers,
-                                        files=files)
-
-        self.assertLess(response.status_code, 300, "Status code should indicate a proper connection.")
-
-        json = response.json()
+            json = self.post_classify(f)
 
         for key in ['idx', 'certainty', 'label']:
             with self.subTest('Key %s' % key):
                 self.assertIn(key, json, 'Could not retrieve key.')
 
         return
+
+    def test_grayscale_image(self):
+        """
+        Single channel image
+        :return:
+        """
+
+        im_orig = Image.open(FILENAME_IMAGE)
+
+        A_orig = np.array(im_orig)
+
+        # Only cast to uint8 after mean (otherwise over summing is done as uint8's)
+        A_gray = np.mean(A_orig, axis=-1).astype(np.uint8)
+
+        im_gray = Image.fromarray(A_gray)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            filename = os.path.join(tmp_dir, 'tmp_gray.png')
+
+            im_gray.save(filename)
+
+            with open(filename, 'rb') as f:
+                json = self.post_classify(f)
+
+        for key in ['idx', 'certainty', 'label']:
+            with self.subTest('Key %s' % key):
+                self.assertIn(key, json, 'Could not retrieve key.')
+
+    def test_image_grayscale_identical(self):
+        """
+        4 channel image
+        :return:
+        """
+
+        im_orig = Image.open(FILENAME_IMAGE)
+
+        A_orig = np.array(im_orig)
+
+        # Only cast to uint8 after mean (otherwise over summing is done as uint8's)
+        A_gray = np.mean(A_orig, axis=-1).astype(np.uint8)
+
+        im_gray = Image.fromarray(A_gray)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            filename = os.path.join(tmp_dir, 'tmp_gray.png')
+
+            im_gray.save(filename)
+
+            with open(filename, 'rb') as f:
+                json = self.post_classify(f)
+
+        with open(FILENAME_IMAGE, 'rb') as f:
+            json_baseline = self.post_classify(f)
+
+        self.assertEqual(json, json_baseline, 'Should give identical results')
+
+    def test_image_alpha(self):
+        """
+        4 channel image
+        :return:
+        """
+
+        headers = {'model-id': "1",
+                   }
+
+        im_orig = Image.open(FILENAME_IMAGE)
+
+        A_orig = np.array(im_orig)
+
+        # Only cast to uint8 after mean (otherwise over summing is done as uint8's)
+        h, w, *c = A_orig.shape
+
+        A_alpha = 255 * np.ones((h, w, 1))
+        A_alpha[:, w // 2:, :] = 0  # Make one half transparent
+
+        A_comb = np.concatenate([A_orig, A_alpha], axis=-1).astype(np.uint8)
+
+        im_alpha = Image.fromarray(A_comb)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            filename = os.path.join(tmp_dir, 'tmp_alpha.png')
+
+            im_alpha.save(filename)
+
+            with open(filename, 'rb') as f:
+                json = self.post_classify(f)
+
+        for key in ['idx', 'certainty', 'label']:
+            with self.subTest('Key %s' % key):
+                self.assertIn(key, json, 'Could not retrieve key.')
+
+    def test_image_alpha_identical(self):
+        """
+        4 channel image
+        :return:
+        """
+
+        headers = {'model-id': "1",
+                   }
+
+        im_orig = Image.open(FILENAME_IMAGE)
+
+        A_orig = np.array(im_orig)
+
+        # Only cast to uint8 after mean (otherwise over summing is done as uint8's)
+        h, w, *c = A_orig.shape
+
+        A_alpha = 255 * np.ones((h, w, 1))
+        A_comb = np.concatenate([A_orig, A_alpha], axis=-1).astype(np.uint8)
+
+        im_alpha = Image.fromarray(A_comb)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            filename = os.path.join(tmp_dir, 'tmp_alpha.png')
+
+            im_alpha.save(filename)
+
+            with open(filename, 'rb') as f:
+                json = self.post_classify(f)
+
+        with open(FILENAME_IMAGE, 'rb') as f:
+            json_baseline = self.post_classify(f)
+
+        self.assertEqual(json, json_baseline, 'Should give identical results')
 
 
 class TestMultipleFilesClassification(unittest.TestCase):
@@ -75,7 +207,7 @@ class TestMultipleFilesClassification(unittest.TestCase):
                    }
 
         with open(FILENAME_IMAGE, 'rb') as f:
-            files = {'files': f}
+            files = [('files', f)]
 
             response = TEST_CLIENT.post("/classify/multiple",
                                         headers=headers,
@@ -119,5 +251,4 @@ class TestMultipleFilesClassification(unittest.TestCase):
             with self.subTest('File %s' % json_i):
 
                 for key in ['idx', 'certainty', 'label']:
-
                     self.assertIn(key, json_i, 'Could not retrieve key.')
