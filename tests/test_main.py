@@ -1,12 +1,13 @@
 import os
 import tempfile
 import unittest
+import warnings
 
 import numpy as np
 from PIL import Image
 from fastapi.testclient import TestClient
 
-from classifier.main import app
+from app.main import app
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # ./classifier/
 
@@ -15,6 +16,8 @@ TEST_CLIENT = TestClient(app)
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 FILENAME_IMAGE = os.path.abspath(os.path.join(ROOT, 'tests/example_files/19154766-page0.jpg'))
 
+if not os.path.exists(FILENAME_IMAGE):
+    warnings.warn(f"Couldn't find image: {FILENAME_IMAGE}", UserWarning)
 
 class TestApp(unittest.TestCase):
     def test_root(self):

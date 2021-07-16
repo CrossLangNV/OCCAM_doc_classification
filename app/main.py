@@ -1,8 +1,8 @@
 from PIL import Image
 from fastapi import UploadFile, File, FastAPI, Header
 
-from app.schemas import Model, ModelsInfo, Prediction
-from methods import get_pred_nbb_bris
+from .schemas.schema import Model, ModelsInfo, Prediction
+from classifier.methods import get_pred_nbb_bris
 from typing import List
 
 app = FastAPI()
