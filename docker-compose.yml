@@ -1,9 +1,10 @@
 version: '3'
 services:
   classifier:
-    build: ./classifier
+    build: ./app
     volumes:
-      - ./classifier:/app
+      - ./classifier:/classifier
+      - ./data:/data
     environment:
       - MODULE_NAME=main
     ports:

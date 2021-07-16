@@ -1,21 +1,28 @@
 import os
 import random
+import warnings
 from pathlib import Path
 
 import numpy as np
 from pdf2image import convert_from_path
 
-FOLDER_RAW_MEDIA = r'G:\My Drive\OCCAM\media'
-FOLDER_BRIS = FOLDER_RAW_MEDIA + r'\BRIS\arne'
-FOLDER_MBB = FOLDER_RAW_MEDIA + r'\NBB'
-
 # Commonly used image width for the input of ImageNet
 IMAGE_WIDTH = 224
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
-MEDIA = os.path.abspath(os.path.join(ROOT, 'media'))
-FILENAME_X = os.path.join(MEDIA, f'x_training_{IMAGE_WIDTH}.npy')
-FILENAME_Y = os.path.join(MEDIA, f'y_training_{IMAGE_WIDTH}.npy')
+FOLDER_RAW_DATA = os.path.join(ROOT, r'data/raw')
+FOLDER_BRIS = os.path.join(FOLDER_RAW_DATA, r'BRIS')
+FOLDER_NBB = os.path.join(FOLDER_RAW_DATA, r'NBB')
+DATA_PREPROCESSED = os.path.abspath(os.path.join(ROOT, 'data/preprocessed'))
+
+for dir in [DATA_PREPROCESSED,
+            FOLDER_NBB,
+            FOLDER_BRIS]:
+    if not os.path.exists(dir):
+        warnings.warn(f'Expected premade directory: {dir}', UserWarning)
+
+FILENAME_X = os.path.join(DATA_PREPROCESSED, f'x_training_{IMAGE_WIDTH}.npy')
+FILENAME_Y = os.path.join(DATA_PREPROCESSED, f'y_training_{IMAGE_WIDTH}.npy')
 
 
 class Training(list):
@@ -62,6 +69,8 @@ class ImagesFolder(np.ndarray):
 
         random.seed(123)
 
+        assert os.path.exists(folder), folder
+
         # Go through files and open files
         for fp in gen_pdf_paths(folder):
             imgs.extend(pdf2image_preprocessing(fp, shape))
@@ -76,7 +85,7 @@ class BRIS(ImagesFolder):
 
 class NBB(ImagesFolder):
     def __new__(cls, *args, **kwargs):
-        return ImagesFolder.__new__(cls, folder=FOLDER_MBB)
+        return ImagesFolder.__new__(cls, folder=FOLDER_NBB)
 
 
 def gen_pdf_paths(folder):
