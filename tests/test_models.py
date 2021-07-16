@@ -59,6 +59,7 @@ class TestDocNet(unittest.TestCase):
 
     def test_train_fast(self):
         """ Test if improved/faster fitting works.
+        Check validation data. Loss on training is semi-random due to dropout.
         """
         BATCH_SIZE = 10
         net = DocModel()
@@ -66,11 +67,12 @@ class TestDocNet(unittest.TestCase):
         x, y = (np.random.randint(0, 256, (BATCH_SIZE, IMAGE_WIDTH, IMAGE_WIDTH, 3)),
                 np.random.randint(0, 2, (BATCH_SIZE, 1)))
 
-        hist = net.fit_fast(x, y, epochs=2)
+        hist = net.fit_fast(x, y, validation_data=(x, y), epochs=2, batch_size=BATCH_SIZE,
+                            )
 
         y_pred = net.predict(x)
 
-        hist_ = hist.history.get('loss')
+        hist_ = hist.history.get('val_loss')
         self.assertTrue(len(hist_) > 1, 'Sanity check that model has trained for more than one step.')
         self.assertLess(hist_[-1], hist_[0], 'loss should have improved')
 

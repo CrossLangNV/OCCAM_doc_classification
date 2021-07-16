@@ -1,12 +1,17 @@
 """
 https://www.tensorflow.org/tutorials/images/transfer_learning
 """
+import os
+from typing import Tuple
 
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.applications import MobileNetV2
 
 IMAGE_WIDTH = 224
+
+ROOT = os.path.join(os.path.dirname(__file__), '..')
+FILENAME_MODEL = os.path.join(ROOT, r'models/mobilenet_imagenet.h5')
 
 
 class DocModel(tf.keras.Model):
@@ -16,6 +21,26 @@ class DocModel(tf.keras.Model):
 
     def __init__(self):
         # Input shape (224, 224, 3)
+
+        def get_base_model():
+
+            if os.path.exists(FILENAME_MODEL):
+                weights = FILENAME_MODEL
+            else:
+                weights = 'imagenet'
+
+            base_model = MobileNetV2(input_shape=(IMAGE_WIDTH, IMAGE_WIDTH, 3),
+                                     include_top=False,
+                                     weights=weights)
+
+            if not os.path.exists(FILENAME_MODEL):
+                # Download and save locally
+                base_model.save_weights(FILENAME_MODEL)
+
+            return base_model
+
+        get_base_model()
+
         base_model = MobileNetV2(input_shape=(IMAGE_WIDTH, IMAGE_WIDTH, 3),
                                  include_top=False,
                                  weights='imagenet')
@@ -58,7 +83,7 @@ class DocModel(tf.keras.Model):
         self.model_features = model_features
         self.model_classifier = model_classifier
 
-    def fit_fast(self, x, y, validation_data=None, *args, **kwargs):
+    def fit_fast(self, x, y, validation_data: Tuple[np.ndarray, np.ndarray] = None, *args, **kwargs):
         """ Instead of inferring each input over and over again, the intermediate features are computed once and
         thus the last layer can be trained extremely fast.
 
@@ -79,7 +104,7 @@ class DocModel(tf.keras.Model):
             f_val = self.model_features(x_val)
             validation_data_f = (f_val, y_val)
         else:
-            validation_data_f = validation_data
+            validation_data_f = None
 
         return self.model_classifier.fit(f, y, validation_data=validation_data_f,
                                          *args, **kwargs)
