@@ -5,15 +5,13 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 
-from classifier.methods import sigmoid
+from classifier.methods import sigmoid, FILENAME_MODEL
 from classifier.models import IMAGE_WIDTH
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
-FILENAME_MODEL = os.path.join(ROOT, r'models/model_nbb_bris.h5')
-
 TEST_FOLDER = os.path.join(ROOT, r'data/test/NBB')
 
-for filename in [FILENAME_MODEL, TEST_FOLDER]:
+for filename in [TEST_FOLDER]:
     if not os.path.exists(filename):
         warnings.warn(f"Couldn't find: {filename}", UserWarning)
 

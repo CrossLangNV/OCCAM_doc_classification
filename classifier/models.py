@@ -11,7 +11,7 @@ from tensorflow.keras.applications import MobileNetV2
 IMAGE_WIDTH = 224
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
-FILENAME_MODEL = os.path.join(ROOT, r'models/mobilenet_imagenet.h5')
+FILENAME_MOBILENET = os.path.join(ROOT, r'models/mobilenet_imagenet.h5')
 
 
 class DocModel(tf.keras.Model):
@@ -24,8 +24,8 @@ class DocModel(tf.keras.Model):
 
         def get_base_model():
 
-            if os.path.exists(FILENAME_MODEL):
-                weights = FILENAME_MODEL
+            if os.path.exists(FILENAME_MOBILENET):
+                weights = FILENAME_MOBILENET
             else:
                 weights = 'imagenet'
 
@@ -33,9 +33,9 @@ class DocModel(tf.keras.Model):
                                      include_top=False,
                                      weights=weights)
 
-            if not os.path.exists(FILENAME_MODEL):
+            if not os.path.exists(FILENAME_MOBILENET):
                 # Download and save locally
-                base_model.save_weights(FILENAME_MODEL)
+                base_model.save_weights(FILENAME_MOBILENET)
 
             return base_model
 
@@ -64,8 +64,6 @@ class DocModel(tf.keras.Model):
         model_classifier = tf.keras.Model(input_f, outputs)
 
         super(DocModel, self).__init__(model_features.inputs, model_classifier(model_features.outputs))
-
-        # model = tf.keras.Model(model_features.inputs, model_classifier(model_features.outputs))
 
         def _compile(model):
             base_learning_rate = 0.0001
