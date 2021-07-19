@@ -6,8 +6,7 @@ from pathlib import Path
 import numpy as np
 from pdf2image import convert_from_path
 
-# Commonly used image width for the input of ImageNet
-IMAGE_WIDTH = 224
+from .models import IMAGE_WIDTH
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 FOLDER_RAW_DATA = os.path.join(ROOT, r'data/raw')
@@ -53,7 +52,7 @@ class Training(list):
 
 class ImagesFolder(np.ndarray):
 
-    def __new__(cls, folder: Path, shape=(224, 224), *args, **kwargs):
+    def __new__(cls, folder: Path, shape=(IMAGE_WIDTH, IMAGE_WIDTH), verbose=1, *args, **kwargs):
         """
         Walk through folder and add all pdf's as image to stack.
 
@@ -71,8 +70,13 @@ class ImagesFolder(np.ndarray):
 
         assert os.path.exists(folder), folder
 
+        if verbose:
+            n = len([None for _ in gen_pdf_paths(folder)])
+
         # Go through files and open files
-        for fp in gen_pdf_paths(folder):
+        for i, fp in enumerate(gen_pdf_paths(folder)):
+            if verbose:
+                print(f'{i + 1}/{n}')
             imgs.extend(pdf2image_preprocessing(fp, shape))
 
         return np.stack(imgs, axis=0)
