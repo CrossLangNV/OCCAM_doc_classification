@@ -43,7 +43,7 @@ def main(folder_in,
 
 
 if __name__ == '__main__':
-
+    # Examples:
     if 0:
         # BRIS
         folder_in = os.path.join(ROOT, 'data/raw/BRIS')
@@ -51,6 +51,9 @@ if __name__ == '__main__':
     else:
         folder_in = os.path.join(ROOT, 'data/raw/NBB')
         folder_out = os.path.join(ROOT, f'data/preprocessed/NBB')
+
+    folder_in = os.path.join(ROOT, 'data/test/nbb')
+    folder_out = folder_in
 
     main(folder_in,
          folder_out,
