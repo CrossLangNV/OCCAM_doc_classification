@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.applications import MobileNetV2
 
+# Commonly used image width for the input of ImageNet
 IMAGE_WIDTH = 224
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
@@ -52,8 +53,8 @@ class DocModel(tf.keras.Model):
         inputs = tf.keras.Input(shape=base_model.input_shape[1:])
         # preprocess [0-255] images
         preprocess_input = tf.keras.applications.mobilenet_v2.preprocess_input
-        x = preprocess_input(inputs)
-        f = base_model(x, training=False)
+        x_preprocessed = preprocess_input(inputs)
+        f = base_model(x_preprocessed, training=False)
 
         input_f = tf.keras.Input(shape=f.shape[1:], name='classifier_input')
         y = global_average_layer(input_f)
@@ -76,10 +77,11 @@ class DocModel(tf.keras.Model):
 
         print(self.summary())
 
-        self.base_model = base_model
+        # You should not need this?
+        # self.base_model = base_model
 
-        self.model_features = model_features
-        self.model_classifier = model_classifier
+        self._model_features = model_features
+        self._model_classifier = model_classifier
 
     def fit_fast(self, x, y, validation_data: Tuple[np.ndarray, np.ndarray] = None, *args, **kwargs):
         """ Instead of inferring each input over and over again, the intermediate features are computed once and
@@ -95,19 +97,33 @@ class DocModel(tf.keras.Model):
         Returns:
             History object.
         """
-        f = self.model_features(x)
+        f = self._model_features(x)
 
         if validation_data is not None:
             x_val, y_val = validation_data
-            f_val = self.model_features(x_val)
+            f_val = self._model_features(x_val)
             validation_data_f = (f_val, y_val)
         else:
             validation_data_f = None
 
-        return self.model_classifier.fit(f, y, validation_data=validation_data_f,
-                                         *args, **kwargs)
+        self.fit_fast_features(f, y, validation_data=validation_data_f,
+                               *args, **kwargs)
 
-    def feature(self, x):
+    def fit_fast_features(self, f, y, *args, **kwargs):
+        """
+
+        Args:
+            f:
+            y:
+
+        Returns:
+
+        """
+
+        return self._model_classifier.fit(f, y, *args, **kwargs)
+
+    def feature(self, x,
+                batch_size=16):
         """ Returns a (n, 7, 7, 1280) array with n the batch size. n = 1 if a single image is given.
 
         Args:
@@ -118,5 +134,5 @@ class DocModel(tf.keras.Model):
         """
         if len(x.shape) == 3:
             x = x[np.newaxis]
-
-        return self.base_model(x)
+        # TODO, does not seem to be reliable yet
+        return self._model_features.predict(x, batch_size=batch_size)

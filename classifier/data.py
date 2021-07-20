@@ -4,6 +4,7 @@ import warnings
 from pathlib import Path
 
 import numpy as np
+from PIL import Image
 from pdf2image import convert_from_path
 
 from .models import IMAGE_WIDTH
@@ -18,7 +19,7 @@ for dir in [DATA_PREPROCESSED,
             FOLDER_NBB,
             FOLDER_BRIS]:
     if not os.path.exists(dir):
-        warnings.warn(f'Expected premade directory: {dir}', UserWarning)
+        warnings.warn(f'Expected pre-made directory: {dir}', UserWarning)
 
 FILENAME_X = os.path.join(DATA_PREPROCESSED, f'x_training_{IMAGE_WIDTH}.npy')
 FILENAME_Y = os.path.join(DATA_PREPROCESSED, f'y_training_{IMAGE_WIDTH}.npy')
@@ -54,12 +55,12 @@ class ImagesFolder(np.ndarray):
 
     def __new__(cls, folder: Path, shape=(IMAGE_WIDTH, IMAGE_WIDTH), verbose=1, *args, **kwargs):
         """
-        Walk through folder and add all pdf's as image to stack.
+        Walk through folder and add all the images to the stack.
 
         Args:
             folder:
             shape:
-            sampling_prob: Chance to add to data (for subsampling)
+            verbose:
             *args:
             **kwargs:
         """
@@ -71,13 +72,14 @@ class ImagesFolder(np.ndarray):
         assert os.path.exists(folder), folder
 
         if verbose:
-            n = len([None for _ in gen_pdf_paths(folder)])
+            n = len([None for _ in gen_im_paths(folder)])
 
-        # Go through files and open files
-        for i, fp in enumerate(gen_pdf_paths(folder)):
+        for i, fp in enumerate(gen_im_paths(folder)):
             if verbose:
                 print(f'{i + 1}/{n}')
-            imgs.extend(pdf2image_preprocessing(fp, shape))
+
+            im = Image.open(fp)
+            imgs.append(image_preprocessing(im, shape))
 
         return np.stack(imgs, axis=0)
 
@@ -101,6 +103,15 @@ def gen_pdf_paths(folder):
                 yield filepath
 
 
+def gen_im_paths(folder):
+    for subdir, dirs, files in os.walk(folder):
+        for filename in files:
+            filepath = os.path.join(subdir, filename)
+
+            if filepath.lower().endswith(('.jpg', '.jpeg', '.png', '.tiff', '.tif')):
+                yield filepath
+
+
 def pdf2image_preprocessing(filepath, shape):
     """ Converts a pdf to a list of preprocessed images.
     Preprocessing includes rescaling to a square.
@@ -116,6 +127,21 @@ def pdf2image_preprocessing(filepath, shape):
     pages = convert_from_path(filepath)
 
     for page in pages:
-        page_reshape = page.resize(shape)
+        yield np.array(image_preprocessing(page, shape))
 
-        yield np.array(page_reshape)
+
+def image_preprocessing(image: Image.Image, shape: tuple) -> np.ndarray:
+    """
+    Rescale to given shape
+
+    Args:
+        image:
+        shape:
+
+    Returns:
+
+    """
+    if image.size != shape:
+        image = image.resize(shape)
+
+    return np.array(image)

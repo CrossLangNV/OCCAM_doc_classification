@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 
+from classifier.data import Training
 from classifier.models import DocModel, IMAGE_WIDTH
 
 
@@ -75,6 +76,33 @@ class TestDocNet(unittest.TestCase):
         hist_ = hist.history.get('val_loss')
         self.assertTrue(len(hist_) > 1, 'Sanity check that model has trained for more than one step.')
         self.assertLess(hist_[-1], hist_[0], 'loss should have improved')
+
+
+class TestDocNetFeature(unittest.TestCase):
+    def setUp(self) -> None:
+        self.doc_model = DocModel()
+    def test_equal(self):
+        x, y = Training()
+
+
+        with self.subTest('n = 1'):
+            x_1 = x[:100, ...]
+            self.shared_eval(x_1)
+
+        with self.subTest('n = 10'):
+            x_10 = x[:100, ...]
+            self.shared_eval(x_10)
+
+        with self.subTest('n = 100'):
+            x_100 = x[:100, ...]
+            self.shared_eval(x_100)
+
+
+    def shared_eval(self, x):
+        f_method = self.doc_model.feature(x)
+        f_model_features = self.doc_model._model_features(x)
+
+        np.testing.assert_array_equal(f_method, f_model_features, 'Should produce the same output')
 
 
 if __name__ == '__main__':
