@@ -53,7 +53,7 @@ class Training(list):
 
 class ImagesFolder(np.ndarray):
 
-    def __new__(cls, folder: Path, shape=(IMAGE_WIDTH, IMAGE_WIDTH), verbose=1, *args, **kwargs):
+    def __new__(cls, folder: Path, shape=(IMAGE_WIDTH, IMAGE_WIDTH), verbose=1, recursive=True,*args, **kwargs):
         """
         Walk through folder and add all the images to the stack.
 
@@ -72,9 +72,9 @@ class ImagesFolder(np.ndarray):
         assert os.path.exists(folder), folder
 
         if verbose:
-            n = len([None for _ in gen_im_paths(folder)])
+            n = len([None for _ in gen_im_paths(folder, recursive=recursive)])
 
-        for i, fp in enumerate(gen_im_paths(folder)):
+        for i, fp in enumerate(gen_im_paths(folder, recursive=recursive)):
             if verbose:
                 print(f'{i + 1}/{n}')
 
@@ -94,22 +94,26 @@ class NBB(ImagesFolder):
         return ImagesFolder.__new__(cls, folder=FOLDER_NBB)
 
 
-def gen_pdf_paths(folder):
+def gen_pdf_paths(folder, recursive=True):
     for subdir, dirs, files in os.walk(folder):
         for filename in files:
             filepath = os.path.join(subdir, filename)
 
             if filepath.endswith('.pdf'):
                 yield filepath
+        if not recursive:  # Finished after first next()
+            break
 
 
-def gen_im_paths(folder):
+def gen_im_paths(folder, recursive=True):
     for subdir, dirs, files in os.walk(folder):
         for filename in files:
             filepath = os.path.join(subdir, filename)
 
             if filepath.lower().endswith(('.jpg', '.jpeg', '.png', '.tiff', '.tif')):
                 yield filepath
+        if not recursive:  # Finished after first next()
+            break
 
 
 def pdf2image_preprocessing(filepath, shape):
@@ -142,6 +146,7 @@ def image_preprocessing(image: Image.Image, shape: tuple) -> np.ndarray:
 
     """
     if image.size != shape:
+        # Default Bicubic
         image = image.resize(shape)
 
     return np.array(image)
