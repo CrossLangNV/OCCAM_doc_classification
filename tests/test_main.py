@@ -15,9 +15,14 @@ TEST_CLIENT = TestClient(app)
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 FILENAME_IMAGE = os.path.abspath(os.path.join(ROOT, 'tests/example_files/19154766-page0.jpg'))
+# Contains text!
+FILENAME_PDF_SCANNED_WITH_TEXT = os.path.abspath(os.path.join(ROOT, 'tests/example_files/19136192_scanned_with_mr_text.pdf'))
+FILENAME_PDF_MACHINE_READABLE = os.path.abspath(os.path.join(ROOT, 'tests/example_files/1999-26101358_marchine_readable.pdf'))
+
 
 if not os.path.exists(FILENAME_IMAGE):
     warnings.warn(f"Couldn't find image: {FILENAME_IMAGE}", UserWarning)
+
 
 class TestApp(unittest.TestCase):
     def test_root(self):
@@ -255,3 +260,47 @@ class TestMultipleFilesClassification(unittest.TestCase):
 
                 for key in ['idx', 'certainty', 'label']:
                     self.assertIn(key, json_i, 'Could not retrieve key.')
+
+
+class TestMachineReadable(unittest.TestCase):
+    def test_single_file_upload(self):
+        with open(FILENAME_PDF_SCANNED_WITH_TEXT, 'rb') as f:
+            """
+            
+            """
+            files = {'file': f}
+
+            response = TEST_CLIENT.post("/machine_readable",
+                                        files=files)
+
+        self.assertEqual(response.text, 'true')
+
+
+class TestScannedDocument(unittest.TestCase):
+
+    def test_different_files(self):
+        """
+        Test for different files
+
+        Returns:
+
+        """
+
+        def _single_test(filename, b_expected):
+            with open(filename, 'rb') as f:
+                files = {'file': f}
+
+                response = TEST_CLIENT.post("/scanned_document",
+                                            files=files)
+
+            j = response.json()
+            p = j.get('prediction')
+
+            self.assertEqual(p, b_expected, 'Did not expect this prediction')
+
+        for filename, b_expected in {FILENAME_PDF_SCANNED_WITH_TEXT: True,
+                  FILENAME_PDF_MACHINE_READABLE: False
+                  }.items():
+
+            with self.subTest(f'filename: {filename}'):
+                _single_test(filename, b_expected)

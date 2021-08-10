@@ -4,3 +4,4 @@ scikit-learn==0.24.00
 fastapi==0.65.1
 uvicorn==0.13.4
 python-multipart==0.0.5
+pdfminer.six==20201018
