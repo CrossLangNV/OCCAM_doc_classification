@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, Optional
 
 from pydantic import BaseModel
 
@@ -17,11 +17,10 @@ class ModelsInfo(BaseModel):
     models: Dict[str, Model]
 
 
-class PredictionBase(BaseModel):
-    idx: int
-    certainty: List[float]
-    label: str
+class Prediction(BaseModel):
+    name: str
+    description: Optional[str] = None
 
-
-class Prediction(PredictionBase):
-    pass
+    certainty: float
+    prediction: bool
+    label: Optional[str] = None

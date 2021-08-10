@@ -1,14 +1,14 @@
-from typing import List, Optional
+from typing import List
 
 from PIL import Image
 from fastapi import UploadFile, File, FastAPI, Header
-from pydantic import BaseModel
 
 from classifier.methods import get_pred_nbb_bris
 from scripts.machine_readable import _p_machine_readable, scanned_document
 from .schemas.schema import Model, ModelsInfo, Prediction
 
 THRESHOLD = .5
+B_MR = False # Disabled to avoid confusion
 app = FastAPI()
 
 
@@ -47,16 +47,19 @@ async def post_classify(model_id: int = Header(...),
         im = Image.open(file.file)
         p1 = get_pred_nbb_bris(im)
 
-        idx = int(p1 >= .5)
+        prediction = p1 >= .5
 
-        certainty = [1 - p1, p1]
-        label = 'BRIS' if idx else 'NBB'
+        label = 'BRIS' if prediction else 'NBB'
     else:
         raise ValueError(f'Unexpected value for model: {model_id}')
 
     p = Prediction(
-        idx=idx,
-        certainty=certainty,
+        name='BOG vs. NBB',
+        description='Classifier that distinguishes '
+                    'Belgian Official Gazette documents from National Bank of Belgium.\n'
+                    'True if BOG, False if NBB',
+        certainty=p1,
+        prediction=prediction,
         label=label,
     )
 
@@ -83,42 +86,36 @@ async def post_classify_multiple(model_id: int = Header(...),
     return l
 
 
-class Prediction(BaseModel):
-    name: str
-    description: Optional[str] = None
-    certainty: float
-    prediction: bool
+if B_MR:
+    @app.post("/machine_readable",
+              response_model=Prediction
+              )
+    async def post_machine_readable(file: UploadFile = File(...),
+                                    threshold=THRESHOLD):
+        """
 
+        Args:
+            file:
 
-@app.post("/machine_readable",
-          response_model=Prediction
-          )
-async def post_machine_readable(file: UploadFile = File(...),
-                                threshold=THRESHOLD):
-    """
+        Returns:
 
-    Args:
-        file:
+        """
 
-    Returns:
+        p = _p_machine_readable(file.file)
 
-    """
+        prediction = Prediction(name='machine readable',
+                                description='Predict if a PDF is machine readable or not.',
+                                certainty=p,
+                                prediction=(p >= threshold))
 
-    p = _p_machine_readable(file.file)
-
-    prediction = Prediction(name='machine readable',
-                            description='Predict if a PDF is machine readable or not.',
-                            certainty=p,
-                            prediction=(p >= threshold))
-
-    return prediction
+        return prediction
 
 
 @app.post("/scanned_document",
           response_model=Prediction
           )
 async def post_scanned_document(file: UploadFile = File(...),
-                                    threshold=THRESHOLD):
+                                threshold=THRESHOLD):
     """ Detect if a PDF contains a scanned document, i.e. might contain non-machine readable text.
 
     Args:
@@ -133,7 +130,7 @@ async def post_scanned_document(file: UploadFile = File(...),
     prediction = Prediction(name='Scanned document',
                             description='Predict if a PDF is a scanned document.',
                             certainty=p_scanned,
-                            prediction= (p_scanned >= threshold)
+                            prediction=(p_scanned >= threshold)
                             )
 
     return prediction

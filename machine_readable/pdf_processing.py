@@ -1,6 +1,27 @@
 import json
 from typing import Tuple, Optional
+from pdfminer.pdfpage import PDFPage
 
+def get_affine_tf_co_page(image_name: str, page: PDFPage):
+    """
+    Goes through the page content to find
+
+    Args:
+        image_name:
+        page:
+
+    Returns:
+
+    """
+
+    for content_i in page.contents:
+        data_content = content_i.resolve().get_data()
+        co = get_affine_tf_co(image_name, data_content)
+
+        if co:
+            return co
+
+    raise ValueError(f"Couldn't find {image_name} in the PDF page")
 
 def get_affine_tf_co(image_name: str, content_stream: bytes) -> Optional[Tuple[float]]:
     """

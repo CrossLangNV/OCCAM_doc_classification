@@ -16,9 +16,12 @@ TEST_CLIENT = TestClient(app)
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 FILENAME_IMAGE = os.path.abspath(os.path.join(ROOT, 'tests/example_files/19154766-page0.jpg'))
 # Contains text!
-FILENAME_PDF_SCANNED_WITH_TEXT = os.path.abspath(os.path.join(ROOT, 'tests/example_files/19136192_scanned_with_mr_text.pdf'))
-FILENAME_PDF_MACHINE_READABLE = os.path.abspath(os.path.join(ROOT, 'tests/example_files/1999-26101358_marchine_readable.pdf'))
-
+FILENAME_PDF_SCANNED = os.path.abspath(
+    os.path.join(ROOT, 'tests/example_files/2006-47600140_scanned.pdf'))
+FILENAME_PDF_SCANNED_WITH_TEXT = os.path.abspath(
+    os.path.join(ROOT, 'tests/example_files/19136192_scanned_with_mr_text.pdf'))
+FILENAME_PDF_MACHINE_READABLE = os.path.abspath(
+    os.path.join(ROOT, 'tests/example_files/1999-26101358_machine_readable.pdf'))
 
 if not os.path.exists(FILENAME_IMAGE):
     warnings.warn(f"Couldn't find image: {FILENAME_IMAGE}", UserWarning)
@@ -77,11 +80,8 @@ class TestClassification(unittest.TestCase):
         with open(FILENAME_IMAGE, 'rb') as f:
             json = self.post_classify(f)
 
-        for key in ['idx', 'certainty', 'label']:
-            with self.subTest('Key %s' % key):
-                self.assertIn(key, json, 'Could not retrieve key.')
+        self._check_keys_response(json)
 
-        return
 
     def test_grayscale_image(self):
         """
@@ -106,9 +106,7 @@ class TestClassification(unittest.TestCase):
             with open(filename, 'rb') as f:
                 json = self.post_classify(f)
 
-        for key in ['idx', 'certainty', 'label']:
-            with self.subTest('Key %s' % key):
-                self.assertIn(key, json, 'Could not retrieve key.')
+        self._check_keys_response(json)
 
     def test_image_grayscale_identical(self):
         """
@@ -169,9 +167,7 @@ class TestClassification(unittest.TestCase):
             with open(filename, 'rb') as f:
                 json = self.post_classify(f)
 
-        for key in ['idx', 'certainty', 'label']:
-            with self.subTest('Key %s' % key):
-                self.assertIn(key, json, 'Could not retrieve key.')
+        self._check_keys_response(json)
 
     def test_image_alpha_identical(self):
         """
@@ -207,6 +203,11 @@ class TestClassification(unittest.TestCase):
 
         self.assertEqual(json, json_baseline, 'Should give identical results')
 
+    def _check_keys_response(self, json):
+        for key in ['prediction', 'certainty', 'label']:
+            with self.subTest('Key %s' % key):
+                self.assertIn(key, json, 'Could not retrieve key.')
+
 
 class TestMultipleFilesClassification(unittest.TestCase):
     def test_single_file_upload(self):
@@ -229,9 +230,7 @@ class TestMultipleFilesClassification(unittest.TestCase):
 
         json0 = json[0]
 
-        for key in ['idx', 'certainty', 'label']:
-            with self.subTest('Key %s' % key):
-                self.assertIn(key, json0, 'Could not retrieve key.')
+        self._check_keys_response(json0)
 
     def test_multiple_same_file_upload(self):
         headers = {'model-id': "1",
@@ -258,8 +257,12 @@ class TestMultipleFilesClassification(unittest.TestCase):
 
             with self.subTest('File %s' % json_i):
 
-                for key in ['idx', 'certainty', 'label']:
-                    self.assertIn(key, json_i, 'Could not retrieve key.')
+                self._check_keys_response(json_i)
+
+    def _check_keys_response(self, json):
+        for key in ['prediction', 'certainty', 'label']:
+            with self.subTest('Key %s' % key):
+                self.assertIn(key, json, 'Could not retrieve key.')
 
 
 class TestMachineReadable(unittest.TestCase):
@@ -273,7 +276,32 @@ class TestMachineReadable(unittest.TestCase):
             response = TEST_CLIENT.post("/machine_readable",
                                         files=files)
 
-        self.assertEqual(response.text, 'true')
+        self.assertEqual(_get_pred_from_response(response), True)
+
+    def test_different_files(self):
+        """
+        Test for different files
+
+        Returns:
+
+        """
+
+        def _single_test(filename, b_expected):
+            with open(filename, 'rb') as f:
+                files = {'file': f}
+
+                response = TEST_CLIENT.post("/machine_readable",
+                                            files=files)
+
+            self.assertEqual(_get_pred_from_response(response), b_expected, 'Did not expect this prediction')
+
+        for filename, b_expected in {
+            FILENAME_PDF_SCANNED: False,
+            FILENAME_PDF_SCANNED_WITH_TEXT: True,
+            FILENAME_PDF_MACHINE_READABLE: True
+        }.items():
+            with self.subTest(f'filename: {filename}'):
+                _single_test(filename, b_expected)
 
 
 class TestScannedDocument(unittest.TestCase):
@@ -293,14 +321,18 @@ class TestScannedDocument(unittest.TestCase):
                 response = TEST_CLIENT.post("/scanned_document",
                                             files=files)
 
-            j = response.json()
-            p = j.get('prediction')
+            self.assertEqual(_get_pred_from_response(response), b_expected, 'Did not expect this prediction')
 
-            self.assertEqual(p, b_expected, 'Did not expect this prediction')
-
-        for filename, b_expected in {FILENAME_PDF_SCANNED_WITH_TEXT: True,
-                  FILENAME_PDF_MACHINE_READABLE: False
-                  }.items():
-
+        for filename, b_expected in {
+            FILENAME_PDF_MACHINE_READABLE: False,
+            FILENAME_PDF_SCANNED: True,
+            FILENAME_PDF_SCANNED_WITH_TEXT: True,
+        }.items():
             with self.subTest(f'filename: {filename}'):
                 _single_test(filename, b_expected)
+
+def _get_pred_from_response(response):
+    j = response.json()
+    p = j.get('prediction')
+
+    return p

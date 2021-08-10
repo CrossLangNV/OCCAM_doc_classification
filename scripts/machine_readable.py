@@ -2,10 +2,16 @@ from typing import List, Dict
 
 import numpy as np
 from pdfminer.pdfpage import PDFPage
-# import chardet
-# import PyPDF2
+
+from machine_readable.pdf_processing import get_affine_tf_co_page
+
+DELTA = 0.01  # Allowed dissimilarity
 
 FONT = 'Font'
+KEY_XOBJECT = 'XObject'
+SUBTYPE = 'Subtype'
+TYPE_IMAGE = 'Image'
+
 
 def machine_readable_classifier(pdf: str) -> bool:
     """
@@ -36,7 +42,6 @@ def pdf_searchable_pages(pdf) -> List[bool]:
     """
 
     with open(pdf, 'rb') as infile:
-
         for page in PDFPage.get_pages(infile):
             b_searchable = FONT in page.resources.keys()
             yield b_searchable
@@ -52,14 +57,12 @@ def _mr_classifier_file(file):
 
     """
 
-
-
     l = list(_pdf_searchable_pages(file))
 
     return all(l)
 
-def _p_machine_readable(pdf) -> float:
 
+def _p_machine_readable(pdf) -> float:
     l = list(_pdf_searchable_pages(pdf))
 
     return np.mean(l)
@@ -106,26 +109,19 @@ def scanned_document(pdf):
                 yield True
 
             else:
-                # TODO
-                # _page_full_page_image(page)
-                # TODO
-                yield False
+                # Even when there is text, it could be that there is an scan in the background
+                yield _page_full_page_image(page)
 
-    l_searchable = list(iter_scanned_page(pdf))
+    l_scanned = list(iter_scanned_page(pdf))
 
-    return np.mean(l_searchable)
+    return np.mean(l_scanned)
 
 
 def _page_searchable(page: PDFPage):
     return FONT in page.resources.keys()
 
 
-def _page_full_page_image(page: PDFPage):
-
-    KEY_XOBJECT = 'XObject'
-    SUBTYPE = 'Subtype'
-    TYPE_IMAGE = 'Image'
-
+def _page_full_page_image(page: PDFPage) -> bool:
     def get_image_xobjects(page: PDFPage) -> Dict[str, Dict]:
         """
         Find all image xobjects in the pdf page
@@ -154,15 +150,25 @@ def _page_full_page_image(page: PDFPage):
 
     # no images
     if len(image_xobjects) == 0:
-        return True
+        return False
 
     # For a scan, we only expect one x object
     elif len(image_xobjects) != 1:
-        return True
+        return False
 
     image_xobject = list(image_xobjects.values())[0]
 
-    def get_TODO(page:PDFPage, image: dict):
+    def check_similar_page(page: PDFPage, image: dict, image_name,
+                           thresh=DELTA) -> bool:
+        """
+
+          Args:
+              w_page:
+              h_page:
+
+          Returns:
+              True if similar, False if dissimilar
+          """
 
         # get Mediabox size
 
@@ -171,92 +177,50 @@ def _page_full_page_image(page: PDFPage):
         w_media_box = media_box[2] - media_box[0]
         h_media_box = media_box[3] - media_box[1]
 
-        for content_i in page.contents:
-            data_content = content_i.resolve().get_data()
+        co_image = get_affine_tf_co_page(image_name, page)
 
+        def get_T(a=1, b=0, c=0, d=1, e=0, f=0):
+            T = np.array([[a, b, e],
+                          [c, d, f],
+                          [0, 0, 1]])
 
-        return
+            return T
 
-    get_TODO(page, image_xobject)
+        def _affine_transform(co, T):
+            """
+            Returns (x, y) transformed
+            Args:
+                co:
+                T:
 
-    return
+            Returns:
 
+            """
 
+            assert np.shape(co) == (2,)
 
+            # (x, y, 1)
+            co3 = np.concatenate([co, [1]])
 
-def _get_affine_tf_2(image, content_stream) -> tuple:
-    """
-    Tries to extract affine transform of the image in contents
-    T = [[a, b, e],
-         [c, d, f],
-         [0, 0, 1]]
-    Info about PDF Coordinate Systems on
-    https://www.adobe.com/content/dam/acom/en/devnet/acrobat/pdfs/PDF32000_2008.pdf#page=206
-    Args:
-        image: image element from PyPDF page
-        content_stream: content from PyPDF page
+            return np.dot(T, co3)[:2]
 
-    Returns:
-        (a, b, c, d, e, f) or None if nothing found
-    """
-    # Get info of image
+        T = get_T(*co_image)
+        T_reverse = get_T(a=1 / w_media_box, d=1 / h_media_box)
 
-    if isinstance(content_stream, bytes):
-        l_content_stream = list(map(bytes.strip, content_stream.splitlines()))
+        left_top = (0, 0)
+        right_top = (1, 0)
+        left_bot = (0, 1)
+        right_bot = (1, 1)
 
-        encoding_content = chardet.detect(content_stream)['encoding']
+        for co_i in [left_top, right_top, left_bot, right_bot]:
+            co_i_star = _affine_transform(_affine_transform(co_i, T), T_reverse)
 
-        if encoding_content is None:
-            image_bytes = bytes(image, 'utf-8')
-        else:
-            image_bytes = bytes(image, encoding_content)
+            # Check if the coordinates are similar after transformation
+            if np.linalg.norm(co_i_star - co_i) >= thresh:
+                # This image does not cover the whole page
+                return False
 
-    else:
-        raise TypeError(type(content_stream))
+        # Everything checked out
+        return True
 
-    # Possibility that content_stream had no linebreaks
-    if len(l_content_stream) == 1:
-        split = l_content_stream[0].split(image_bytes + b' Do')
-
-        if len(split) == 1:
-            return
-
-        elif len(split) == 2:
-            assert len(split) <= 2
-
-            *_, a, b, c, d, e, f, cm = split[0].split()
-
-            a, b, c, d, e, f, cm = map(bytes.decode, (a, b, c, d, e, f, cm))
-
-            assert cm == 'cm'
-
-            a, b, c, d, e, f = map(float, (a, b, c, d, e, f))
-
-            co = (a, b, c, d, e, f)
-            return co
-        else:
-            raise ValueError(f"{image_bytes} shouldn't be found more than once")
-
-    # finding image in content stream
-    for i, line in enumerate(l_content_stream):
-        if line.split()[:2] == [image_bytes, b'Do']:
-            co = l_content_stream[i - 1].decode()  # Homogeneous coordinates
-
-            # Not always nicely before and after.
-            if 0:
-                q = l_content_stream[i - 2].decode()
-                Q = l_content_stream[i + 1].decode()
-
-                assert q == 'q'
-                assert Q == 'Q'
-
-            a, b, c, d, e, f, cm = co.split()
-            assert cm == 'cm'
-
-            a, b, c, d, e, f = map(float, (a, b, c, d, e, f))
-
-            co = (a, b, c, d, e, f)
-            return co
-
-    # Found nothing
-    return
+    return check_similar_page(page, image_xobject, image_name=list(image_xobjects)[0])
