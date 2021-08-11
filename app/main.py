@@ -5,7 +5,7 @@ from fastapi import UploadFile, File, FastAPI, Header
 
 from classifier.methods import get_pred_nbb_bris
 from scripts.machine_readable import _p_machine_readable, scanned_document
-from .schemas.schema import Model, ModelsInfo, Prediction
+from app.schemas.schema import Model, ModelsInfo, Prediction
 
 THRESHOLD = .5
 B_MR = False # Disabled to avoid confusion
@@ -115,7 +115,7 @@ if B_MR:
           response_model=Prediction
           )
 async def post_scanned_document(file: UploadFile = File(...),
-                                threshold=THRESHOLD):
+                                threshold:float=THRESHOLD):
     """ Detect if a PDF contains a scanned document, i.e. might contain non-machine readable text.
 
     Args:

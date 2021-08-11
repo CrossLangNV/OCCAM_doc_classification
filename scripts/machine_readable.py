@@ -83,7 +83,7 @@ def _pdf_searchable_pages(file):
         yield b_searchable
 
 
-def scanned_document(pdf):
+def scanned_document(pdf) -> float:
     """ Predict the likelihood that a PDF file might contain scanned documents.
 
     Args:
@@ -114,7 +114,7 @@ def scanned_document(pdf):
 
     l_scanned = list(iter_scanned_page(pdf))
 
-    return np.mean(l_scanned)
+    return float(np.mean(l_scanned))
 
 
 def _page_searchable(page: PDFPage):
