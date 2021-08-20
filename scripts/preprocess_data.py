@@ -62,23 +62,23 @@ def main(folder_in,
 
 if __name__ == '__main__':
     # Examples:
-    if 0:
+    fileformat = 'PDF'
+    recursive = True
+    if 1:
         # BRIS
-        folder_in = os.path.join(ROOT, 'data/raw/BRIS')
-        folder_out = os.path.join(ROOT, f'data/preprocessed/BRIS')
-    else:
+        folder_in = os.path.join(ROOT, 'data/raw/BRIS/BOG')
+        folder_out = os.path.join(ROOT, f'data/preprocessed/BOG')
+    elif 0:
         folder_in = os.path.join(ROOT, 'data/raw/NBB')
         folder_out = os.path.join(ROOT, f'data/preprocessed/NBB')
-
-    # folder_in = os.path.join(ROOT, 'data/test/nbb')
-    # folder_out = folder_in
-
-    folder_in = os.path.join(ROOT, 'data/test/official_gazette')
-    folder_out = os.path.join(ROOT, 'data/test/official_gazette/prep')
-    fileformat = 'image'
+    else:
+        folder_in = os.path.join(ROOT, 'data/test/official_gazette')
+        folder_out = os.path.join(ROOT, 'data/test/official_gazette/prep')
+        fileformat = 'image'
+        recursive = False
 
     main(folder_in,
          folder_out,
          fileformat=fileformat,
-         recursive=False
+         recursive=recursive,
          )

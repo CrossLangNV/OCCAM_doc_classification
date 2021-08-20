@@ -82,7 +82,6 @@ class TestClassification(unittest.TestCase):
 
         self._check_keys_response(json)
 
-
     def test_grayscale_image(self):
         """
         Single channel image
@@ -254,9 +253,7 @@ class TestMultipleFilesClassification(unittest.TestCase):
         self.assertEqual(len(json), n)
 
         for json_i in json:
-
             with self.subTest('File %s' % json_i):
-
                 self._check_keys_response(json_i)
 
     def _check_keys_response(self, json):
@@ -266,17 +263,24 @@ class TestMultipleFilesClassification(unittest.TestCase):
 
 
 class TestMachineReadable(unittest.TestCase):
+    B_DEPRECATED = True
+    def setUp(self) -> None:
+
+        if self.B_DEPRECATED:
+            warnings.warn('This call is deprecate', DeprecationWarning)
+
     def test_single_file_upload(self):
-        with open(FILENAME_PDF_SCANNED_WITH_TEXT, 'rb') as f:
-            """
-            
-            """
-            files = {'file': f}
+        if not self.B_DEPRECATED:
+            with open(FILENAME_PDF_SCANNED_WITH_TEXT, 'rb') as f:
+                """
+                
+                """
+                files = {'file': f}
 
-            response = TEST_CLIENT.post("/machine_readable",
-                                        files=files)
+                response = TEST_CLIENT.post("/machine_readable",
+                                            files=files)
 
-        self.assertEqual(_get_pred_from_response(response), True)
+            self.assertEqual(_get_pred_from_response(response), True)
 
     def test_different_files(self):
         """
@@ -285,23 +289,23 @@ class TestMachineReadable(unittest.TestCase):
         Returns:
 
         """
+        if not self.B_DEPRECATED:
+            def _single_test(filename, b_expected):
+                with open(filename, 'rb') as f:
+                    files = {'file': f}
 
-        def _single_test(filename, b_expected):
-            with open(filename, 'rb') as f:
-                files = {'file': f}
+                    response = TEST_CLIENT.post("/machine_readable",
+                                                files=files)
 
-                response = TEST_CLIENT.post("/machine_readable",
-                                            files=files)
+                self.assertEqual(_get_pred_from_response(response), b_expected, 'Did not expect this prediction')
 
-            self.assertEqual(_get_pred_from_response(response), b_expected, 'Did not expect this prediction')
-
-        for filename, b_expected in {
-            FILENAME_PDF_SCANNED: False,
-            FILENAME_PDF_SCANNED_WITH_TEXT: True,
-            FILENAME_PDF_MACHINE_READABLE: True
-        }.items():
-            with self.subTest(f'filename: {filename}'):
-                _single_test(filename, b_expected)
+            for filename, b_expected in {
+                FILENAME_PDF_SCANNED: False,
+                FILENAME_PDF_SCANNED_WITH_TEXT: True,
+                FILENAME_PDF_MACHINE_READABLE: True
+            }.items():
+                with self.subTest(f'filename: {filename}'):
+                    _single_test(filename, b_expected)
 
 
 class TestScannedDocument(unittest.TestCase):
@@ -330,6 +334,7 @@ class TestScannedDocument(unittest.TestCase):
         }.items():
             with self.subTest(f'filename: {filename}'):
                 _single_test(filename, b_expected)
+
 
 def _get_pred_from_response(response):
     j = response.json()

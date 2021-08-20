@@ -40,11 +40,7 @@ class DocModel(tf.keras.Model):
 
             return base_model
 
-        get_base_model()
-
-        base_model = MobileNetV2(input_shape=(IMAGE_WIDTH, IMAGE_WIDTH, 3),
-                                 include_top=False,
-                                 weights='imagenet')
+        base_model = get_base_model()
         base_model.trainable = False  # Fix the weights for transfer learning
 
         global_average_layer = tf.keras.layers.GlobalAveragePooling2D()
@@ -106,25 +102,25 @@ class DocModel(tf.keras.Model):
         else:
             validation_data_f = None
 
-        self.fit_fast_features(f, y, validation_data=validation_data_f,
+        return self.fit_fast_features(f, y, validation_data=validation_data_f,
                                *args, **kwargs)
 
     def fit_fast_features(self, f, y, *args, **kwargs):
         """
 
         Args:
-            f:
-            y:
+            f: Features of the intermediate layer
+            y: Ground truth target.
 
         Returns:
-
+            History of training the model
         """
 
         return self._model_classifier.fit(f, y, *args, **kwargs)
 
     def feature(self, x,
                 batch_size=16):
-        """ Returns a (n, 7, 7, 1280) array with n the batch size. n = 1 if a single image is given.
+        """ Returns a (n, 7, 7, 1280) array with n the number of images. n = 1 if a single image is given.
 
         Args:
             x:

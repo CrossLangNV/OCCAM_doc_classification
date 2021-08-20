@@ -2,6 +2,7 @@ import os
 import random
 import warnings
 from pathlib import Path
+from typing import Union
 
 import numpy as np
 from PIL import Image
@@ -10,19 +11,19 @@ from pdf2image import convert_from_path
 from .models import IMAGE_WIDTH
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
-FOLDER_RAW_DATA = os.path.join(ROOT, r'data/raw')
-FOLDER_BRIS = os.path.join(FOLDER_RAW_DATA, r'BRIS')
-FOLDER_NBB = os.path.join(FOLDER_RAW_DATA, r'NBB')
-DATA_PREPROCESSED = os.path.abspath(os.path.join(ROOT, 'data/preprocessed'))
+FOLDER_PREPROCESSED_DATA = os.path.join(ROOT, r'data/preprocessed')
+FOLDER_FEATURES = os.path.join(ROOT, r'data/features')
+FOLDER_BOG = os.path.join(FOLDER_PREPROCESSED_DATA, r'BOG')
+FOLDER_NBB = os.path.join(FOLDER_PREPROCESSED_DATA, r'NBB')
 
-for dir in [DATA_PREPROCESSED,
+for dir in [FOLDER_FEATURES,
             FOLDER_NBB,
-            FOLDER_BRIS]:
+            FOLDER_BOG]:
     if not os.path.exists(dir):
         warnings.warn(f'Expected pre-made directory: {dir}', UserWarning)
 
-FILENAME_X = os.path.join(DATA_PREPROCESSED, f'x_training_{IMAGE_WIDTH}.npy')
-FILENAME_Y = os.path.join(DATA_PREPROCESSED, f'y_training_{IMAGE_WIDTH}.npy')
+FILENAME_X = os.path.join(FOLDER_FEATURES, f'x_training_{IMAGE_WIDTH}.npy')
+FILENAME_Y = os.path.join(FOLDER_FEATURES, f'y_training_{IMAGE_WIDTH}.npy')
 
 
 class Training(list):
@@ -53,7 +54,8 @@ class Training(list):
 
 class ImagesFolder(np.ndarray):
 
-    def __new__(cls, folder: Path, shape=(IMAGE_WIDTH, IMAGE_WIDTH), verbose=1, recursive=True,*args, **kwargs):
+    def __new__(cls, folder: Union[str, Path], shape=(IMAGE_WIDTH, IMAGE_WIDTH), verbose=1, recursive=True, *args,
+                **kwargs):
         """
         Walk through folder and add all the images to the stack.
 
@@ -86,7 +88,7 @@ class ImagesFolder(np.ndarray):
 
 class BRIS(ImagesFolder):
     def __new__(cls, *args, **kwargs):
-        return ImagesFolder.__new__(cls, folder=FOLDER_BRIS)
+        return ImagesFolder.__new__(cls, folder=FOLDER_BOG)
 
 
 class NBB(ImagesFolder):

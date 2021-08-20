@@ -81,9 +81,9 @@ class TestDocNet(unittest.TestCase):
 class TestDocNetFeature(unittest.TestCase):
     def setUp(self) -> None:
         self.doc_model = DocModel()
+
     def test_equal(self):
         x, y = Training()
-
 
         with self.subTest('n = 1'):
             x_1 = x[:100, ...]
@@ -97,12 +97,22 @@ class TestDocNetFeature(unittest.TestCase):
             x_100 = x[:100, ...]
             self.shared_eval(x_100)
 
-
     def shared_eval(self, x):
+        """
+        doc_model.feature will calculate on batches, and due to some batchnormalisations this gives slightly different results.
+        doc_model.__call__ calculates on all the data at once.
+        Args:
+            x:
+
+        Returns:
+
+        """
         f_method = self.doc_model.feature(x)
+        # f_model_features = self.doc_model._model_features.predict(x)
         f_model_features = self.doc_model._model_features(x)
 
-        np.testing.assert_array_equal(f_method, f_model_features, 'Should produce the same output')
+        np.testing.assert_array_almost_equal(f_method, f_model_features, decimal=2,
+                                             err_msg='Should produce a similar output')
 
 
 if __name__ == '__main__':

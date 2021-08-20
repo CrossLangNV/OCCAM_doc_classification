@@ -42,7 +42,7 @@ class TestData(unittest.TestCase):
             self.assertTrue(len(y), 'Y should be non-empty')
 
             for y_i in y:
-                self.assertIsInstance(y_i, (int, np.int, np.int32), 'Every element should be index as integer')
+                self.assertIsInstance(y_i, (int, np.int, np.int8, np.int16, np.int32, np.int64), 'Every element should be index as integer')
 
         with self.subTest('Alignment input and output data'):
             self.assertEqual(len(x), len(y), 'Should contain same number of elements')
