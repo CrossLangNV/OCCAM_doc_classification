@@ -93,11 +93,12 @@ class DocModel(tf.keras.Model):
         Returns:
             History object.
         """
-        f = self._model_features(x)
+
+        f = self.feature(x)
 
         if validation_data is not None:
             x_val, y_val = validation_data
-            f_val = self._model_features(x_val)
+            f_val = self.feature(x_val)
             validation_data_f = (f_val, y_val)
         else:
             validation_data_f = None
@@ -130,5 +131,16 @@ class DocModel(tf.keras.Model):
         """
         if len(x.shape) == 3:
             x = x[np.newaxis]
-        # TODO, does not seem to be reliable yet
-        return self._model_features.predict(x, batch_size=batch_size)
+
+        if 1:
+            # Solves some memory issues
+            l_y = []
+            n = x.shape[0]
+            for i in range(0, n, batch_size):
+                batch = x[i:i+batch_size, ...]
+                # for batch in x[::batch_size, ...]:
+                l_y.append(self._model_features.predict(batch, batch_size=batch_size))
+
+            return np.concatenate(l_y, axis=0)
+        else:
+            return self._model_features.predict(x, batch_size=batch_size)
