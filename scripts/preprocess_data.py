@@ -48,10 +48,19 @@ def main(folder_in,
 
             yield Image.fromarray(image_preprocessing(Image.open(fp), shape))
 
+    def get_images_from_pdf_and_images():
+        for im in get_images_from_pdf():
+            yield im
+        for im in get_images_from_images():
+            yield im
+
     if 'pdf' in fileformat.lower():
         gen = get_images_from_pdf()
     elif 'image' in fileformat.lower():
         gen = get_images_from_images()
+    else:
+        # Do both:
+        gen = get_images_from_pdf_and_images()
 
     for current_index, im in enumerate(gen):
         fp_out = os.path.join(folder_out, f'im_{current_index:04d}.png')
@@ -64,18 +73,32 @@ if __name__ == '__main__':
     # Examples:
     fileformat = 'PDF'
     recursive = True
-    if 1:
+    if 0:
         # BRIS
         folder_in = os.path.join(ROOT, 'data/raw/BRIS/BOG')
         folder_out = os.path.join(ROOT, f'data/preprocessed/BOG')
     elif 0:
         folder_in = os.path.join(ROOT, 'data/raw/NBB')
         folder_out = os.path.join(ROOT, f'data/preprocessed/NBB')
-    else:
+    elif 0:
         folder_in = os.path.join(ROOT, 'data/test/official_gazette')
         folder_out = os.path.join(ROOT, 'data/test/official_gazette/prep')
         fileformat = 'image'
         recursive = False
+    elif 1:
+        # DH use cases
+        fileformat = ''
+        recursive = True
+
+        # folder_in = os.path.join(ROOT, 'data/raw/DH/handwritten')
+        # folder_out = os.path.join(ROOT, 'data/preprocessed/handwritten')
+
+        # folder_in = os.path.join(ROOT, 'data/raw/DH/printed')
+        # folder_out = os.path.join(ROOT, 'data/preprocessed/printed')
+
+        folder_in = os.path.join(ROOT, 'data/raw/DH/newspapers')
+        folder_out = os.path.join(ROOT, 'data/preprocessed/newspapers')
+
 
     main(folder_in,
          folder_out,

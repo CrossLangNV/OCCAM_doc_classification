@@ -118,7 +118,7 @@ def gen_im_paths(folder, recursive=True):
             break
 
 
-def pdf2image_preprocessing(filepath, shape):
+def pdf2image_preprocessing(filepath, shape, verbose=1):
     """ Converts a pdf to a list of preprocessed images.
     Preprocessing includes rescaling to a square.
 
@@ -130,10 +130,14 @@ def pdf2image_preprocessing(filepath, shape):
         Iterable list of images as numpy arrays.
     """
 
-    pages = convert_from_path(filepath)
+    # immediately change size to limit memory.
+    pages = convert_from_path(filepath,
+                              size=shape)
 
-    for page in pages:
-        yield np.array(image_preprocessing(page, shape))
+    for i, page in enumerate(pages):
+        if verbose:
+            print(f'Page {i+1}/{len(pages)}')
+        yield image_preprocessing(page, shape)
 
 
 def image_preprocessing(image: Image.Image, shape: tuple) -> np.ndarray:
