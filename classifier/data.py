@@ -1,6 +1,5 @@
 import os
 import random
-import warnings
 from pathlib import Path
 from typing import Union
 
@@ -9,47 +8,6 @@ from PIL import Image
 from pdf2image import convert_from_path
 
 from .models import IMAGE_WIDTH
-
-ROOT = os.path.join(os.path.dirname(__file__), '..')
-FOLDER_PREPROCESSED_DATA = os.path.join(ROOT, r'data/preprocessed')
-FOLDER_FEATURES = os.path.join(ROOT, r'data/features')
-FOLDER_BOG = os.path.join(FOLDER_PREPROCESSED_DATA, r'BOG')
-FOLDER_NBB = os.path.join(FOLDER_PREPROCESSED_DATA, r'NBB')
-
-for dir in [FOLDER_FEATURES,
-            FOLDER_NBB,
-            FOLDER_BOG]:
-    if not os.path.exists(dir):
-        warnings.warn(f'Expected pre-made directory: {dir}', UserWarning)
-
-FILENAME_X = os.path.join(FOLDER_FEATURES, f'x_training_{IMAGE_WIDTH}.npy')
-FILENAME_Y = os.path.join(FOLDER_FEATURES, f'y_training_{IMAGE_WIDTH}.npy')
-
-
-class Training(list):
-
-    def __init__(self, b_scratch=False, *args, **kwargs):
-        """
-
-        """
-
-        if b_scratch or (not os.path.exists(FILENAME_X)) or (not os.path.exists(FILENAME_Y)):
-            x1 = BRIS()
-            y1 = [1 for _ in x1]
-
-            x2 = NBB()
-            y2 = [0 for _ in x2]
-
-            x = np.concatenate([x1, x2], axis=0)
-            y = np.concatenate([y1, y2], axis=0)
-
-            np.save(FILENAME_X, x)
-            np.save(FILENAME_Y, y)
-
-        x = np.load(FILENAME_X)
-        y = np.load(FILENAME_Y)
-
-        super(Training, self).__init__([x, y])
 
 
 class ImagesFolder(np.ndarray):
@@ -85,15 +43,6 @@ class ImagesFolder(np.ndarray):
 
         return np.stack(imgs, axis=0)
 
-
-class BRIS(ImagesFolder):
-    def __new__(cls, *args, **kwargs):
-        return ImagesFolder.__new__(cls, folder=FOLDER_BOG)
-
-
-class NBB(ImagesFolder):
-    def __new__(cls, *args, **kwargs):
-        return ImagesFolder.__new__(cls, folder=FOLDER_NBB)
 
 
 def gen_pdf_paths(folder, recursive=True):
@@ -136,7 +85,7 @@ def pdf2image_preprocessing(filepath, shape, verbose=1):
 
     for i, page in enumerate(pages):
         if verbose:
-            print(f'Page {i+1}/{len(pages)}')
+            print(f'Page {i + 1}/{len(pages)}')
         yield image_preprocessing(page, shape)
 
 

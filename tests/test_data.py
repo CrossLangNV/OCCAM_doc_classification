@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from classifier.data import Training
+from classifier.datasets import Training
 
 
 class TestData(unittest.TestCase):

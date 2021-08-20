@@ -1,4 +1,4 @@
-from classifier.data import Training
+from classifier.datasets import Training
 from classifier.methods import FILENAME_MODEL
 from classifier.models import DocModel
 from tensorflow.keras.callbacks import EarlyStopping
