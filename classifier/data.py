@@ -1,7 +1,7 @@
 import os
 import random
 from pathlib import Path
-from typing import Union
+from typing import Union, List, Tuple, Generator, Iterator
 
 import numpy as np
 from PIL import Image
@@ -46,6 +46,9 @@ class ImagesFolder(np.ndarray):
 
 
 def gen_pdf_paths(folder, recursive=True):
+
+    return gen_filenames(folder, recursive, ext='.pdf')
+
     for subdir, dirs, files in os.walk(folder):
         for filename in files:
             filepath = os.path.join(subdir, filename)
@@ -57,6 +60,9 @@ def gen_pdf_paths(folder, recursive=True):
 
 
 def gen_im_paths(folder, recursive=True):
+
+    return gen_filenames(folder, recursive, ext=('.jpg', '.jpeg', '.png', '.tiff', '.tif'))
+
     for subdir, dirs, files in os.walk(folder):
         for filename in files:
             filepath = os.path.join(subdir, filename)
@@ -66,6 +72,32 @@ def gen_im_paths(folder, recursive=True):
         if not recursive:  # Finished after first next()
             break
 
+
+def gen_filenames(folder, recursive=True, ext:Union[str, List[str], Tuple[str]]=None) -> Iterator[str]:
+    """
+
+    Args:
+        folder:
+        recursive:
+        ext:
+
+    Returns:
+
+    """
+    if ext:
+        ext = tuple(map(str.lower, ext))
+
+    for subdir, dirs, files in os.walk(folder):
+        for filename in files:
+            filepath = os.path.join(subdir, filename)
+
+            if ext:
+                if filepath.lower().endswith(ext):
+                    yield filepath
+            else:
+                yield filepath
+        if not recursive:  # Finished after first next()
+            break
 
 def pdf2image_preprocessing(filepath, shape, verbose=1):
     """ Converts a pdf to a list of preprocessed images.

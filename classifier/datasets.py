@@ -15,6 +15,9 @@ FOLDER_NBB = os.path.join(FOLDER_PREPROCESSED_DATA, r'NBB')
 FOLDER_NEWSPAPERS = os.path.join(FOLDER_PREPROCESSED_DATA, r'newspapers')
 FOLDER_PRINTED = os.path.join(FOLDER_PREPROCESSED_DATA, r'printed')
 FOLDER_HANDWRITTEN = os.path.join(FOLDER_PREPROCESSED_DATA, r'handwritten')
+SUBDIR_TRAIN = 'train'
+SUBDIR_VALID = 'valid'
+SUBDIR_TEST = 'test'
 
 FOLDER_FEATURES = os.path.join(ROOT, r'data/features')
 FILENAME_X = os.path.join(FOLDER_FEATURES, f'x_training_{IMAGE_WIDTH}.npy')
