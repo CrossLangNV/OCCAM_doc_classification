@@ -1,24 +1,23 @@
 import os.path
 
 import numpy as np
-from sklearn.model_selection import train_test_split
 from tensorflow import keras
 from tensorflow.python.keras.callbacks import EarlyStopping
 
-from classifier.datasets import BRIS, DH
+from classifier.datasets import BRIS, DH, Subset
 from classifier.models import IMAGE_WIDTH, DocModel
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 FOLDER_FEATURES = os.path.join(ROOT, r'data/features')
-FILENAME_X = os.path.join(FOLDER_FEATURES, f'x_DH_BRIS_{IMAGE_WIDTH}.npy')
-FILENAME_Y = os.path.join(FOLDER_FEATURES, f'y_DH_BRIS_{IMAGE_WIDTH}.npy')
+FILENAME_X = os.path.join(FOLDER_FEATURES, f'x_DH_BRIS_{IMAGE_WIDTH}_{{subset}}.npy')
+FILENAME_Y = os.path.join(FOLDER_FEATURES, f'y_DH_BRIS_{IMAGE_WIDTH}_{{subset}}.npy')
 
 
 def gen_y_from_x(x: np.ndarray, label: int):
     return label * np.ones((x.shape[0],), dtype=np.int)
 
 
-def get_data(b_scratch: bool = False) -> (np.ndarray, np.ndarray):
+def get_data(b_scratch: bool = False, subset:Subset=Subset.TRAIN) -> (np.ndarray, np.ndarray):
     """
     Training data for BRIS vs DH use-case
 
@@ -28,22 +27,26 @@ def get_data(b_scratch: bool = False) -> (np.ndarray, np.ndarray):
     Returns:
 
     """
-    if b_scratch or (not os.path.exists(FILENAME_X)) or (not os.path.exists(FILENAME_Y)):
-        x_BRIS = BRIS()
+
+    filename_x = FILENAME_X.format(subset=subset.value)
+    filename_y = FILENAME_Y.format(subset=subset.value)
+
+    if b_scratch or (not os.path.exists(filename_x)) or (not os.path.exists(filename_x)):
+        x_BRIS = BRIS(subset)
         y_BRIS = gen_y_from_x(x_BRIS, 0)
 
-        x_DH = DH()
+        x_DH = DH(subset)
         y_DH = gen_y_from_x(x_DH, 1)
 
         x = np.concatenate([x_BRIS, x_DH], axis=0)
         y = np.concatenate([y_BRIS, y_DH], axis=0)
 
-        np.save(FILENAME_X, x)
-        np.save(FILENAME_Y, y)
+        np.save(filename_x, x)
+        np.save(filename_y, y)
 
     else:
-        x = np.load(FILENAME_X)
-        y = np.load(FILENAME_Y)
+        x = np.load(filename_x)
+        y = np.load(filename_y)
 
     return x, y
 
@@ -92,8 +95,9 @@ def main():
     #                                                      image_size=(IMAGE_WIDTH, IMAGE_WIDTH),
     #                                                      label_mode=None)
 
-    x, y = get_data()
-    X_train, X_test, y_train, y_test = train_test_split(x, y, test_size=.2, random_state=123)
+    X_train, y_train = get_data(subset=Subset.TRAIN)
+    X_valid, y_valid = get_data(subset=Subset.VALID)
+    X_test, y_test = get_data(subset=Subset.TEST)
 
     net = DocModel()
     es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=5)
@@ -103,7 +107,7 @@ def main():
 
         hist = net.fit_fast(X_train, y_train,
                             epochs=1000,
-                            validation_data=(X_test, y_test),
+                            validation_data=(X_valid, y_valid),
                             callbacks=es)
 
     else:
@@ -125,14 +129,14 @@ def main():
         else:
             # Only train last layers
             f_train = net.feature(X_train)
-            f_valid = net.feature(X_test)
+            f_valid = net.feature(X_valid)
 
             training_generator_f = DataGenerator(f_train,
                                                  y_train,
                                                  )
 
             valid_generator_f = DataGenerator(f_valid,
-                                              y_test,
+                                              y_valid,
                                               )
 
             net._model_classifier.fit(training_generator_f,

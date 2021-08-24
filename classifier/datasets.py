@@ -1,5 +1,7 @@
 import os
 import warnings
+from enum import Enum, unique
+from typing import List
 
 import numpy as np
 
@@ -15,9 +17,6 @@ FOLDER_NBB = os.path.join(FOLDER_PREPROCESSED_DATA, r'NBB')
 FOLDER_NEWSPAPERS = os.path.join(FOLDER_PREPROCESSED_DATA, r'newspapers')
 FOLDER_PRINTED = os.path.join(FOLDER_PREPROCESSED_DATA, r'printed')
 FOLDER_HANDWRITTEN = os.path.join(FOLDER_PREPROCESSED_DATA, r'handwritten')
-SUBDIR_TRAIN = 'train'
-SUBDIR_VALID = 'valid'
-SUBDIR_TEST = 'test'
 
 FOLDER_FEATURES = os.path.join(ROOT, r'data/features')
 FILENAME_X = os.path.join(FOLDER_FEATURES, f'x_training_{IMAGE_WIDTH}.npy')
@@ -28,6 +27,16 @@ for dir in [FOLDER_FEATURES,
             FOLDER_BOG]:
     if not os.path.exists(dir):
         warnings.warn(f'Expected pre-made directory: {dir}', UserWarning)
+
+
+@unique
+class Subset(Enum):
+    """
+    The different subsets of data: training, validating and testing
+    """
+    TRAIN = 'train'
+    VALID = 'valid'
+    TEST = 'test'
 
 
 class Training(list):
@@ -57,44 +66,53 @@ class Training(list):
 
 
 class BOG(ImagesFolder):
-    def __new__(cls, *args, **kwargs):
-        return ImagesFolder.__new__(cls, folder=FOLDER_BOG)
+    def __new__(cls, subset: Subset, *args, **kwargs):
+        return ImagesFolder.__new__(cls, folder=os.path.join(FOLDER_BOG, subset.value))
 
 
 class NBB(ImagesFolder):
-    def __new__(cls, *args, **kwargs):
-        return ImagesFolder.__new__(cls, folder=FOLDER_NBB)
+    def __new__(cls, subset: Subset, *args, **kwargs):
+        return ImagesFolder.__new__(cls, folder=os.path.join(FOLDER_NBB, subset.value))
 
 
 class Newspapers(ImagesFolder):
-    def __new__(cls, *args, **kwargs):
-        return ImagesFolder.__new__(cls, folder=FOLDER_NEWSPAPERS)
+    def __new__(cls, subset: Subset, *args, **kwargs):
+        return ImagesFolder.__new__(cls, folder=os.path.join(FOLDER_NEWSPAPERS, subset.value))
 
 
 class Printed(ImagesFolder):
-    def __new__(cls, *args, **kwargs):
-        return ImagesFolder.__new__(cls, folder=FOLDER_PRINTED)
+    def __new__(cls, subset: Subset, *args, **kwargs):
+        return ImagesFolder.__new__(cls, folder=os.path.join(FOLDER_PRINTED, subset.value))
 
 
 class Handwritten(ImagesFolder):
-    def __new__(cls, *args, **kwargs):
-        return ImagesFolder.__new__(cls, folder=FOLDER_HANDWRITTEN)
+    def __new__(cls, subset: Subset, *args, **kwargs):
+        return ImagesFolder.__new__(cls, folder=os.path.join(FOLDER_HANDWRITTEN, subset.value))
+
+
+class ImageFolderCollection(ImagesFolder):
+
+    @staticmethod
+    def filter_empty_if(l_if: List[ImagesFolder]) -> List[ImagesFolder]:
+        # Filter emtpy arrays
+        return [if_ for if_ in l_if if if_.size]
+
 
 # Bigger collections
-class BRIS(ImagesFolder):
-    def __new__(cls, *args, **kwargs):
-        if_BOG = BOG()
-        if_NBB = NBB()
+class BRIS(ImageFolderCollection):
+    def __new__(cls, subset: Subset, *args, **kwargs):
+        if_BOG = BOG(subset)
+        if_NBB = NBB(subset)
 
-        c = np.concatenate([if_BOG, if_NBB], axis=0)
+        c = np.concatenate(cls.filter_empty_if([if_BOG, if_NBB]), axis=0)
         return c
 
 
-class DH(ImagesFolder):
-    def __new__(cls, *args, **kwargs):
-        if_news = Newspapers()
-        if_print = Printed()
-        if_handwritten = Handwritten()
+class DH(ImageFolderCollection):
+    def __new__(cls, subset: Subset, *args, **kwargs):
+        if_news = Newspapers(subset)
+        if_print = Printed(subset)
+        if_handwritten = Handwritten(subset)
 
-        c = np.concatenate([if_news, if_print, if_handwritten], axis=0)
+        c = np.concatenate(cls.filter_empty_if([if_news, if_print, if_handwritten]), axis=0)
         return c

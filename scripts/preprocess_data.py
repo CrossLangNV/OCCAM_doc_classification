@@ -99,8 +99,8 @@ class Main:
             yields PIL images with their subdir.
         """
 
-        n = len(_ for _ in gen_filenames(folder_in, recursive=recursive,
-                                         ext=self.L_EXT))
+        n = len([_ for _ in gen_filenames(folder_in, recursive=recursive,
+                                         ext=self.L_EXT)])
         # Go over all the files (PDF's and Images)
         for i_file, filename in enumerate(gen_filenames(folder_in, recursive=recursive,
                                                         ext=self.L_EXT)):

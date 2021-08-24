@@ -1,7 +1,8 @@
 import os
 import random
+import warnings
 from pathlib import Path
-from typing import Union, List, Tuple, Generator, Iterator
+from typing import Union, List, Tuple, Iterator
 
 import numpy as np
 from PIL import Image
@@ -29,7 +30,10 @@ class ImagesFolder(np.ndarray):
 
         random.seed(123)
 
-        assert os.path.exists(folder), folder
+        if not os.path.exists(folder):
+            warnings.warn(f"Could not find folder, returning empty list: {folder}", UserWarning)
+            # Emtpy array of
+            return np.empty(shape=(0,) + shape + (3,))
 
         if verbose:
             n = len([None for _ in gen_im_paths(folder, recursive=recursive)])
@@ -44,36 +48,15 @@ class ImagesFolder(np.ndarray):
         return np.stack(imgs, axis=0)
 
 
-
 def gen_pdf_paths(folder, recursive=True):
-
     return gen_filenames(folder, recursive, ext='.pdf')
-
-    for subdir, dirs, files in os.walk(folder):
-        for filename in files:
-            filepath = os.path.join(subdir, filename)
-
-            if filepath.endswith('.pdf'):
-                yield filepath
-        if not recursive:  # Finished after first next()
-            break
 
 
 def gen_im_paths(folder, recursive=True):
-
     return gen_filenames(folder, recursive, ext=('.jpg', '.jpeg', '.png', '.tiff', '.tif'))
 
-    for subdir, dirs, files in os.walk(folder):
-        for filename in files:
-            filepath = os.path.join(subdir, filename)
 
-            if filepath.lower().endswith(('.jpg', '.jpeg', '.png', '.tiff', '.tif')):
-                yield filepath
-        if not recursive:  # Finished after first next()
-            break
-
-
-def gen_filenames(folder, recursive=True, ext:Union[str, List[str], Tuple[str]]=None) -> Iterator[str]:
+def gen_filenames(folder, recursive=True, ext: Union[str, List[str], Tuple[str]] = None) -> Iterator[str]:
     """
 
     Args:
@@ -98,6 +81,7 @@ def gen_filenames(folder, recursive=True, ext:Union[str, List[str], Tuple[str]]=
                 yield filepath
         if not recursive:  # Finished after first next()
             break
+
 
 def pdf2image_preprocessing(filepath, shape, verbose=1):
     """ Converts a pdf to a list of preprocessed images.
