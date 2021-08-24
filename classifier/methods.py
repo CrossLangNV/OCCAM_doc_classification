@@ -1,12 +1,18 @@
 import os
+import warnings
 
 import numpy as np
 import tensorflow as tf
 from PIL import Image
 
-from models import IMAGE_WIDTH
+from .models import IMAGE_WIDTH
 
-ROOT = os.path.dirname(__file__)
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+
+FILENAME_MODEL = os.path.join(ROOT, 'models/model_nbb_bris.h5')
+
+if not os.path.exists(FILENAME_MODEL):
+    warnings.warn(f"Couldn't find model: {FILENAME_MODEL}", UserWarning)
 
 
 def get_pred_nbb_bris(im: Image) -> float:
@@ -16,10 +22,24 @@ def get_pred_nbb_bris(im: Image) -> float:
     :return:
     """
 
-    filename_model = os.path.join(ROOT, 'model_nbb_bris.h5')
-    model_test = tf.keras.models.load_model(filename_model)
+    model_test = tf.keras.models.load_model(FILENAME_MODEL)
 
-    y_pred = float(model_test.predict(preprocess_image(im)[np.newaxis]))
+    return get_pred(model_test)
+
+
+def get_pred(im, model):
+    """
+    Get a prediction for a single image.
+
+    Args:
+        im:
+        model:
+
+    Returns:
+
+    """
+
+    y_pred = float(model.predict(preprocess_image(im)[np.newaxis]))
     p1 = sigmoid(y_pred)
 
     return p1

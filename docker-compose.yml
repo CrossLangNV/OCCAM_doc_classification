@@ -1,10 +1,15 @@
 version: '3'
 services:
   classifier:
-    build: ./classifier
+    build: ./app
     volumes:
-      - ./classifier:/app
+      - ./app:/app/app
+      - ./classifier:/app/classifier
+      - ./data:/app/data
+      - ./machine_readable:/app/machine_readable
+      - ./models:/app/models
+      - ./scripts:/app/scripts
     environment:
-      - MODULE_NAME=main
+      - MODULE_NAME=app.main
     ports:
       - 9080:80
