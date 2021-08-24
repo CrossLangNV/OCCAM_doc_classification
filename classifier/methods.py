@@ -24,7 +24,22 @@ def get_pred_nbb_bris(im: Image) -> float:
 
     model_test = tf.keras.models.load_model(FILENAME_MODEL)
 
-    y_pred = float(model_test.predict(preprocess_image(im)[np.newaxis]))
+    return get_pred(model_test)
+
+
+def get_pred(im, model):
+    """
+    Get a prediction for a single image.
+
+    Args:
+        im:
+        model:
+
+    Returns:
+
+    """
+
+    y_pred = float(model.predict(preprocess_image(im)[np.newaxis]))
     p1 = sigmoid(y_pred)
 
     return p1

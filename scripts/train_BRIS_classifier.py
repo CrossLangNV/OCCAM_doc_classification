@@ -73,7 +73,7 @@ def script_train(dir_label: str,
         y_0 = np.zeros((n,))
         return f_0, y_0
 
-    if 0:
+    if 1:
         f_comb = np.concatenate([f_label, f_not_label], axis=0)
         y_comb = np.concatenate([y_label, y_not_label], axis=0)
     elif 0:
@@ -112,7 +112,6 @@ def main():
     """
 
     # Get some data
-    # TODO What is most convenient?
     # TODO Also try to make a user script, and access that one.
 
     dir_label = os.path.join(ROOT, 'data/preprocessed/BRIS')

@@ -146,7 +146,7 @@ def main():
                                       callbacks=[es],
                                       )
 
-            net.save_weights(FILENAME_MODEL_DH)
+            net.save(FILENAME_MODEL_DH)
 
     return
 

@@ -45,10 +45,11 @@ class TestGetModels(unittest.TestCase):
 
         models = response.json().get('models')
 
-        for key, value in models.items():
-            with self.subTest(f'Model: {key}'):
-                self.assertIn('id', value, 'Should contain an ID key')
-                self.assertIn('description', value, 'Should contain a description')
+        for model_info in models:
+            with self.subTest(f'Model: {model_info.get("name")}'):
+
+                for key in ['id', 'name', 'description']:
+                    self.assertIn(key, model_info.keys(), f'Should contain an {key} key')
 
     def test_trailing_slash(self):
         response = TEST_CLIENT.get("/models")
@@ -58,7 +59,6 @@ class TestGetModels(unittest.TestCase):
 
 
 class TestClassification(unittest.TestCase):
-
     def post_classify(self, file,
                       headers=None
                       ):
@@ -81,6 +81,36 @@ class TestClassification(unittest.TestCase):
             json = self.post_classify(f)
 
         self._check_keys_response(json)
+
+    def test_different_models(self):
+        """
+        Test the call for different model id's: existing and non-existing.
+        Returns:
+
+        """
+
+        response = TEST_CLIENT.get("/models")
+        models = response.json().get('models')
+
+        for model in models:
+            with self.subTest(model.get('name')):
+                model_id = model.get('id')
+                headers = {'model-id': str(model_id)}
+
+                with open(FILENAME_IMAGE, 'rb') as f:
+                    json = self.post_classify(f, headers=headers)
+
+                self._check_keys_response(json)
+
+        with self.subTest('Non-existing model id'):
+            model_id = -1
+            headers = {'model-id': str(model_id)}
+
+            with open(FILENAME_IMAGE, 'rb') as f:
+                files = {'file': f}
+
+                self.assertRaises(Exception, TEST_CLIENT.post, "/classify", headers=headers,
+                                  files=files, msg='Should raise an error')
 
     def test_grayscale_image(self):
         """
@@ -264,6 +294,7 @@ class TestMultipleFilesClassification(unittest.TestCase):
 
 class TestMachineReadable(unittest.TestCase):
     B_DEPRECATED = True
+
     def setUp(self) -> None:
 
         if self.B_DEPRECATED:

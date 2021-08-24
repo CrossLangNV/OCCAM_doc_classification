@@ -3,12 +3,14 @@ from typing import List
 from PIL import Image
 from fastapi import UploadFile, File, FastAPI, Header
 
-from classifier.methods import get_pred_nbb_bris
+from app.schemas.schema import ModelsInfo, Prediction, ModelSecret
+from classifier.methods import get_pred
+from classifier.models import DocModel
+from models.config import ModelConfig
 from scripts.machine_readable import _p_machine_readable, scanned_document
-from app.schemas.schema import Model, ModelsInfo, Prediction
 
 THRESHOLD = .5
-B_MR = False # Disabled to avoid confusion
+B_MR = False  # Disabled to avoid confusion
 app = FastAPI()
 
 
@@ -19,17 +21,7 @@ async def root():
 
 @app.get("/models", response_model=ModelsInfo)
 async def get_models():
-    d = {'models': {}}
-
-    def add_model(name: str,
-                  id: int,
-                  description: str):
-        d.get('models')[name] = Model(id=id,
-                                      description=description,
-                                      name=name)
-
-    # TODO put into a constructor
-    add_model('NBB_BRIS', 1, 'Distinguishes Belgian BRIS documents from NBB')
+    d = {'models': ModelConfig.MODELS}
 
     return d
 
@@ -43,21 +35,35 @@ async def post_classify(model_id: int = Header(...),
     :return:
     """
 
-    if model_id == 1:
-        im = Image.open(file.file)
-        p1 = get_pred_nbb_bris(im)
+    def _get_model(model_id: int) -> ModelSecret:
+        for model in filter(lambda model: model.id == model_id, ModelConfig.MODELS):
+            return model
 
-        prediction = p1 >= .5
-
-        label = 'BRIS' if prediction else 'NBB'
-    else:
         raise ValueError(f'Unexpected value for model: {model_id}')
 
+    fast_model = _get_model(model_id)
+
+    keras_model = DocModel()
+    keras_model.load_weights(fast_model.filename)
+    # keras_model =         tf.keras.models.load_model(model.filename)
+
+    im = Image.open(file.file)
+    p1 = get_pred(im, keras_model)
+
+    # TODO find out if there is a need to release the GPU memory manually.
+    # from tensorflow.keras import backend as K
+    # K.clear_session()
+
+    # prediction = p1 >= .5
+    #
+    # label = 'BRIS' if prediction else 'NBB'
+
+    prediction = (p1 >= .5)
+    label = fast_model.get_label() if prediction else fast_model.get_not_label()
+
     p = Prediction(
-        name='BOG vs. NBB',
-        description='Classifier that distinguishes '
-                    'Belgian Official Gazette documents from National Bank of Belgium.\n'
-                    'True if BOG, False if NBB',
+        name=fast_model.name,
+        description=fast_model.description,
         certainty=p1,
         prediction=prediction,
         label=label,
@@ -115,7 +121,7 @@ if B_MR:
           response_model=Prediction
           )
 async def post_scanned_document(file: UploadFile = File(...),
-                                threshold:float=THRESHOLD):
+                                threshold: float = THRESHOLD):
     """ Detect if a PDF contains a scanned document, i.e. might contain non-machine readable text.
 
     Args:

@@ -47,10 +47,10 @@ class Training(list):
         """
 
         if b_scratch or (not os.path.exists(FILENAME_X)) or (not os.path.exists(FILENAME_Y)):
-            x1 = BOG()
+            x1 = BOG(Subset.TRAIN)
             y1 = [1 for _ in x1]
 
-            x2 = NBB()
+            x2 = NBB(Subset.TRAIN)
             y2 = [0 for _ in x2]
 
             x = np.concatenate([x1, x2], axis=0)
