@@ -11,13 +11,14 @@ ROOT = os.path.join(os.path.dirname(__file__), '..')
 FOLDER_FEATURES = os.path.join(ROOT, r'data/features')
 FILENAME_X = os.path.join(FOLDER_FEATURES, f'x_DH_BRIS_{IMAGE_WIDTH}_{{subset}}.npy')
 FILENAME_Y = os.path.join(FOLDER_FEATURES, f'y_DH_BRIS_{IMAGE_WIDTH}_{{subset}}.npy')
+FILENAME_MODEL_DH = os.path.join(ROOT, 'models/model_DH.h5')
 
 
 def gen_y_from_x(x: np.ndarray, label: int):
     return label * np.ones((x.shape[0],), dtype=np.int)
 
 
-def get_data(b_scratch: bool = False, subset:Subset=Subset.TRAIN) -> (np.ndarray, np.ndarray):
+def get_data(b_scratch: bool = False, subset: Subset = Subset.TRAIN) -> (np.ndarray, np.ndarray):
     """
     Training data for BRIS vs DH use-case
 
@@ -144,6 +145,8 @@ def main():
                                       epochs=200,
                                       callbacks=[es],
                                       )
+
+            net.save_weights(FILENAME_MODEL_DH)
 
     return
 
