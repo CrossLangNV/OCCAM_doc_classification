@@ -11,4 +11,7 @@ RUN pip3 uninstall -y numpy
 # 1.18.0
 RUN pip3 install numpy==1.18.5
 
+RUN pip3 install pydantic==1.9.2
+RUN pip3 install protobuf==3.20
+
 WORKDIR "/app"
